@@ -1,0 +1,2524 @@
+const bg = "https://i.postimg.cc/PfvN6szG/red.jpg";
+
+const PREFIX = "/https/";
+const GAME_HOST = "https://gn-math.dev";
+
+function rewriteHtml(html, target) {
+
+  const parsed = new URL(target);
+  const origin = parsed.origin;
+html = html.replace(
+  /(href|src|action)=["']\/\/([^"']+)["']/gi,
+  (m, attr, path) =>
+    `${attr}="${PREFIX}https://${path}"`
+);
+
+html = html.replace(
+  /(href|src|action)=["']\/(?!\/)([^"']*)["']/gi,
+  (match, attr, path) => {
+    return `${attr}="${PREFIX}${origin}/${path}"`;
+  }
+);
+
+  html = html.replace(
+    /(href|src|action)=["']https?:\/\/([^"']+)["']/gi,
+    (match, attr, path) => {
+      return `${attr}="${PREFIX}${path}"`;
+    }
+  );
+
+  html = html.replace(
+    /(href|src|action)=["'](?!http|\/|#|data:)([^"']+)["']/gi,
+    (match, attr, path) => {
+      return `${attr}="${PREFIX}${origin}/${path}"`;
+    }
+  );
+html = html.replace(
+  /target=["']_blank["']/gi,
+  'target="_self"'
+);
+  html = html.replace(/window\.top/gi, "window");
+  html = html.replace(/top\.location/gi, "window.location");
+  html = html.replace(/parent\.location/gi, "window.location");
+html = html.replace(
+  
+  "</head>",
+  `
+<script>
+
+// Force window.open to use current tab
+window.open = function(url){
+  if(url){
+    location.href = url;
+  }
+  return null;
+};
+
+// Remove target="_blank"
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[target='_blank']");
+  if(a){
+    e.preventDefault();
+    location.href = a.href;
+  }
+});
+
+</script>
+</head>`
+);
+html = html.replace(
+  /location\.href\s*=\s*["']https?:\/\/([^"']+)["']/gi,
+  (m, url) =>
+    `location.href="/https/${url}"`
+);
+
+html = html.replace(
+  /window\.location\s*=\s*["']https?:\/\/([^"']+)["']/gi,
+  (m, url) =>
+    `window.location="/https/${url}"`
+);
+
+html = html.replace(
+  /location\.replace\s*\(\s*["']https?:\/\/([^"']+)["']\s*\)/gi,
+  (m, url) =>
+    `location.replace("/https/${url}")`
+);
+
+html = html.replace(
+  /window\.location\.replace\s*\(\s*["']https?:\/\/([^"']+)["']\s*\)/gi,
+  (m, url) =>
+    `window.location.replace("/https/${url}")`
+);
+html = html.replace(
+  /<meta[^>]+http-equiv=["']refresh["'][^>]+content=["']([^"']+)url=(https?:\/\/[^"']+)["']/gi,
+  (m, delay, url) =>
+    m.replace(url, "/https/" + url.replace(/^https?:\/\//, ""))
+);
+  return html;
+}
+
+const home = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="shortcut icon" href="https://i.postimg.cc/KYYSsPSR/Screenshot-2026-05-30-14-59-42-removebg-preview.png">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/KYYSsPSR/Screenshot-2026-05-30-14-59-42-removebg-preview.png">
+<link rel="apple-touch-icon" href="https://i.postimg.cc/KYYSsPSR/Screenshot-2026-05-30-14-59-42-removebg-preview.png">
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>Snipershot!</title>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+  rel="stylesheet"
+>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Inter,sans-serif;
+}
+
+body{
+  height:100vh;
+  overflow:hidden;
+  background:#060608;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.bg{
+  position:fixed;
+  inset:0;
+
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,0,0,.14), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255,0,0,.10), transparent 45%),
+    url('${bg}') center/cover no-repeat;
+
+  filter:brightness(.3);
+  transform:none;
+}
+
+#bootScreen{
+  position:fixed;
+  inset:0;
+  background:#050507;
+  z-index:999999;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  gap:19px;
+}
+
+.bootLogo{
+  font-size:78px;
+  font-weight:900;
+  letter-spacing:-4px;
+
+  text-shadow:
+    0 0 10px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(17, 9, 9, 0.88);
+}
+
+.bootText{
+  opacity:.67;
+  font-size:14px;
+  font-weight:600;
+}
+
+.bootBarWrap{
+  width:min(500px,80vw);
+  height:18px;
+
+  overflow:hidden;
+
+  border-radius:999px;
+
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.bootBar{
+  width:0%;
+  height:100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      #36a125b4,
+      #ff0000a2
+    );
+
+  transition:width .2s linear;
+
+  box-shadow:
+    0 0 24px rgba(255,0,0,.32);
+}
+
+#particles{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+  z-index:1;
+}
+
+.particle{
+  position:absolute;
+
+  width:4px;
+  height:4px;
+
+  border-radius:50%;
+
+  background:rgba(255,255,255,.35);
+
+  animation:float linear infinite;
+}
+
+@keyframes float{
+
+  from{
+    transform:translateY(100vh);
+    opacity:0;
+  }
+
+  20%{
+    opacity:1;
+  }
+
+  to{
+    transform:translateY(-120vh);
+    opacity:0;
+  }
+
+}
+
+.panel{
+  position:relative;
+  z-index:2;
+
+  width:min(1000px,92vw);
+
+  padding:38px;
+
+  border-radius:28px;
+
+  background:rgba(18,18,24,.66);
+
+  backdrop-filter:blur(13px);
+
+  border:1px solid rgba(255,255,255,.08);
+
+  box-shadow:
+    0 0 40px rgba(0,0,0,.28);
+}
+
+.logo{
+  font-size:86px;
+  font-weight:900;
+  letter-spacing:-3.2px;
+  line-height:.9;
+
+  text-shadow:
+    0 0 10px rgba(255,255,255,.18),
+    0 0 24px rgba(255,70,70,.25),
+    0 0 50px rgba(255,0,0,.25);
+}
+
+.logo span{
+  color:#ff3939;
+}
+
+.sub{
+  margin-top:10px;
+  opacity:.78;
+  font-weight:600;
+}
+
+.proxyStats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+
+  margin-top:18px;
+}
+
+.proxyBox{
+  padding:18px;
+
+  border-radius:18px;
+
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.proxyBox span{
+  display:block;
+  margin-bottom:6px;
+
+  font-size:12px;
+  opacity:.6;
+}
+
+.proxyBox strong{
+  font-size:26px;
+}
+
+.slider{
+  margin-top:20px;
+  overflow:hidden;
+
+  padding:14px;
+
+  border-radius:18px;
+
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.track{
+  display:flex;
+  gap:14px;
+
+  width:max-content;
+
+  will-change:transform;
+}
+
+.slide{
+  padding:12px 18px;
+
+  border-radius:14px;
+
+  white-space:nowrap;
+
+  font-weight:700;
+
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.search{
+  margin-top:18px;
+
+  display:flex;
+
+  padding:18px;
+
+  border-radius:18px;
+
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.search input{
+  flex:1;
+
+  background:none;
+  border:none;
+  outline:none;
+
+  color:white;
+  font-size:15px;
+}
+
+.search input::placeholder{
+  color:rgba(255,255,255,.45);
+}
+
+.cards{
+  margin-top:18px;
+
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+
+  gap:14px;
+}
+
+.card{
+  padding:22px;
+
+  border-radius:20px;
+
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+
+  cursor:pointer;
+
+  font-weight:700;
+
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  background:rgba(255,255,255,.06);
+  border-color:rgba(255,60,60,.42);
+}
+
+.gameTitle{
+  position:relative;
+  z-index:2;
+}
+
+.gamePreview{
+
+  position:absolute;
+
+  inset:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:2px;
+
+  opacity:0;
+
+  background:
+    linear-gradient(
+      to top,
+      rgba(0,0,0,.72),
+      rgba(0,0,0,.18)
+    );
+
+  transition:
+    opacity .22s ease,
+    transform .22s ease;
+
+  transform:translateY(10px);
+
+  pointer-events:none;
+}
+
+.card:hover .gamePreview{
+
+  opacity:1;
+
+  transform:translateY(0);
+}
+
+
+#fx{
+  position:fixed;
+  inset:0;
+  z-index:999;
+  pointer-events:none;
+}
+
+#sniper{
+  position:fixed;
+
+  width:420px;
+
+  left:120px;
+  top:120px;
+
+  z-index:1000;
+
+  cursor:grab;
+
+  user-select:none;
+  image-rendering:pixelated;
+
+  transform-origin:center;
+
+  filter:
+    drop-shadow(0 0 12px rgba(210, 33, 33, 0.55))
+    drop-shadow(0 0 28px rgba(40, 36, 36, 0.49));
+}
+#quotePanel{
+  position:fixed;
+  left:20px;
+  bottom:20px;
+
+  width:320px;
+
+  padding:18px 20px;
+
+  border-radius:18px;
+
+  background:rgba(18,18,24,.62);
+  backdrop-filter:blur(22px);
+
+  border:1px solid rgba(255,255,255,.10);
+
+  box-shadow:
+    0 15px 45px rgba(0,0,0,.4);
+
+  z-index:9999; /* <- forces overlay above everything */
+
+  pointer-events:none; /* prevents blocking clicks */
+}
+
+/* small accent bar */
+#quotePanel::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  height:3px;
+  width:100%;
+
+  background:linear-gradient(
+    90deg,
+    #ff3b3b,
+    #ff7a18,
+    #ff3b3b
+  );
+
+  opacity:.8;
+}
+
+/* quote icon */
+#quotePanel::after{
+  content:"“”";
+  position:absolute;
+  right:14px;
+  bottom:8px;
+
+  font-size:28px;
+  opacity:.12;
+  letter-spacing:2px;
+}
+
+#quoteText{
+  font-size:16px;
+  font-weight:700;
+  line-height:1.4;
+
+  color:white;
+
+  opacity:1;
+
+  transition:
+    opacity .25s ease,
+    transform .25s ease;
+
+  text-shadow:0 0 10px rgba(255,255,255,.12);
+}
+const quotes = [
+  "Spiderbee if tuff, im tuffer.",
+  "Coding type shi.",
+  "Loading uhhh idfk ph or sum.",
+  "Hamilton is tuff.",
+  "Hi uhhhhh im tired.",
+  "Five night at epsteins is tuff as hell boi",
+  "If only I had a puff to puffer-rks side piece"
+];
+
+let quoteIndex = 0;
+
+window.addEventListener("DOMContentLoaded", () => {
+  const quoteText = document.getElementById("quoteText");
+
+  function setQuote() {
+    quoteText.style.opacity = "0";
+    quoteText.style.transform = "translateY(10px) scale(0.98)";
+
+    setTimeout(() => {
+      quoteIndex = (quoteIndex + 1) % quotes.length;
+      quoteText.textContent = quotes[quoteIndex];
+
+      quoteText.style.opacity = "1";
+      quoteText.style.transform = "translateY(0) scale(1)";
+    }, 250);
+  }
+
+  // initial random quote so it doesn’t feel stuck
+  quoteIndex = Math.floor(Math.random() * quotes.length);
+  quoteText.textContent = quotes[quoteIndex];
+
+  setInterval(setQuote, 5000);
+}); 
+</style>
+
+</head>
+<script>
+const quotes = [
+  "Spiderbee if tuff, im tuffer.",
+  "Coding type shi.",
+  "Loading uhhh idfk ph or sum.",
+  "Hamilton is tuff.",
+  "Hi uhhhhh im tired.",
+  "Five night at epsteins is tuff as hell boi",
+  "listen here u will play tiki tiki funk and mi pan zu zu zu max vol and change server image to tom peral aura framming or u disrepected my family-Deltahub"
+];
+
+let quoteIndex = 0;
+
+window.addEventListener("load", () => {
+  const quoteText = document.getElementById("quoteText");
+
+  if (!quoteText) {
+    console.warn("quoteText not found");
+    return;
+  }
+
+  // start with random quote
+  quoteIndex = Math.floor(Math.random() * quotes.length);
+  quoteText.textContent = quotes[quoteIndex];
+
+  function nextQuote() {
+    quoteText.style.opacity = "0";
+    quoteText.style.transform = "translateY(10px)";
+
+    setTimeout(() => {
+      quoteIndex = (quoteIndex + 1) % quotes.length;
+      quoteText.textContent = quotes[quoteIndex];
+
+      quoteText.style.opacity = "1";
+      quoteText.style.transform = "translateY(0)";
+    }, 250);
+  }
+
+  setInterval(nextQuote, 5000);
+});
+</script>
+
+<body>
+
+<div id="bootScreen">
+
+  <div class="bootLogo">
+  SNIPERSHOT :D
+  </div>
+
+  <div class="bootText" id="bootText">
+    Coding type shi
+  </div>
+
+  <div class="bootBarWrap">
+    <div class="bootBar" id="bootBar"></div>
+  </div>
+
+</div>
+
+<div id="particles"></div>
+
+<div class="bg"></div>
+<div id="quotePanel">
+
+  <div id="quoteText">
+    "welcome to snipershot or sum idfk"
+  </div>
+
+</div>
+<div class="panel">
+
+  <div class="logo">
+    sniper<span>shot</span>
+  </div>
+
+  <div class="sub">
+    Spiderbee if tuff, im tuffer
+  </div>
+
+  <div class="proxyStats">
+
+    <div class="proxyBox">
+      <span>Nodes</span>
+<strong id="nodeCount">__NODE__</strong>
+    </div>
+
+    <div class="proxyBox">
+      <span>Latency</span>
+      <strong id="latency">43ms</strong>
+    </div>
+
+    <div class="proxyBox">
+      <span>Status</span>
+      <strong id="proxyState">ONLINE</strong>
+    </div>
+
+  </div>
+
+  <div class="slider">
+
+    <div class="track" id="track">
+
+    <div class="slide">PROXY</div>
+      <div class="slide">W GAMES</div>
+      <div class="slide">SNIPERSHOT</div>
+      <div class="slide">UI</div>
+
+      <div class="slide">PROXY</div>
+      <div class="slide">W GAMES </div>
+      <div class="slide">SNIPERSHOT</div>
+      <div class="slide">UI</div>
+
+    </div>
+
+  </div>
+
+  <form
+    class="search"
+    onsubmit="go(event)"
+  >
+
+    <input
+      id="input"
+      placeholder="Search or URL...good boi"
+    >
+
+  </form>
+
+<div class="cards">
+
+<div
+  class="card"
+  onclick="location.href='/games'"
+>
+  🎮 Games
+</div>
+
+  <div
+    class="card"
+    onclick="window.open('https://discord.gg/6ct6ERhEN','_blank')"
+  >
+    💬 Discord PLEASE JOIN :(
+  </div>
+
+  <div
+    class="card"
+    onclick="window.open('https://www.tiktok.com/@pufferrrrrrrrrrrrrrrrrr','_blank')"
+  >
+    🎵 Snipershot TikTok
+  </div>
+
+</div>
+
+<canvas id="fx"></canvas>
+
+<img
+  id="sniper"
+  src="https://i.postimg.cc/3wyZYkkK/images-Photoroom.png"
+  draggable="false"
+>
+
+<script>
+function cardShoot(event, url) {
+  location.href = url;
+}
+
+
+function go(e){
+
+  e.preventDefault();
+
+  let value =
+    document
+      .getElementById("input")
+      .value
+      .trim();
+  if(!value){
+    return;
+  }
+
+  if(value.includes(".")){
+
+    if(
+      !value.startsWith("http://") &&
+      !value.startsWith("https://")
+    ){
+      value = "https://" + value;
+    }
+
+    location.href =
+      "/https/" +
+      value.replace(/^https?:\\/\\//,"");
+
+    return;
+  }
+
+  location.href =
+    "/search?q=" +
+    encodeURIComponent(value);
+}
+
+const track =
+  document.getElementById("track");
+
+let trackPos = 0;
+let trackVel = 0.65;
+let wobble = 0;
+
+function animateTrack(){
+
+  wobble += 0.02;
+
+  trackPos -= trackVel + Math.sin(wobble) * 0.04;
+
+  const width = track.scrollWidth / 2;
+
+  if (Math.abs(trackPos) > width) {
+    trackPos = 0;
+  }
+
+  const value = "translate3d(" + trackPos + "px,0,0)";
+
+  track.style.transform = value;
+
+  requestAnimationFrame(animateTrack);
+}
+
+animateTrack();
+
+
+const bootBar =
+  document.getElementById("bootBar");
+
+const bootText =
+  document.getElementById("bootText");
+
+const bootScreen =
+  document.getElementById("bootScreen");
+
+const bootMessages = [
+  "Gooning...",
+  "Tying the knot...",
+  "kicking the chair...",
+  "*printer noises*...",
+  "thinking...",
+  "loading games...",
+  "almost done..."
+];
+
+window.addEventListener("load", () => {
+
+  let progress = 0;
+  let currentMessage = 0;
+
+  const bootAnim = setInterval(() => {
+
+    progress +=
+      Math.random() * 18;
+
+    if(progress > 100){
+      progress = 100;
+    }
+
+    bootBar.style.width =
+      progress + "%";
+
+    if(
+      currentMessage <
+      bootMessages.length - 1
+    ){
+
+      if(
+        progress >
+        (currentMessage + 1) * 14
+      ){
+
+        currentMessage++;
+
+        bootText.textContent =
+          bootMessages[currentMessage];
+      }
+    }
+
+    if(progress >= 100){
+
+      clearInterval(bootAnim);
+
+      setTimeout(() => {
+
+        bootScreen.style.transition =
+          "opacity .45s ease";
+
+        bootScreen.style.opacity = "0";
+
+        setTimeout(() => {
+          bootScreen.remove();
+        },450);
+
+      },250);
+    }
+
+  },120);
+
+  const particleWrap =
+    document.getElementById("particles");
+
+  for(let i = 0; i < 80; i++){
+
+    const particle =
+      document.createElement("div");
+
+    particle.className = "particle";
+
+    particle.style.left =
+      Math.random() * 100 + "%";
+
+    particle.style.top =
+      Math.random() * 100 + "%";
+
+    particle.style.animationDuration =
+      4 + Math.random() * 12 + "s";
+
+    particle.style.animationDelay =
+      Math.random() * 5 + "s";
+
+    particle.style.opacity =
+      Math.random();
+
+    particleWrap.appendChild(particle);
+  }
+
+  const latency =
+    document.getElementById("latency");
+
+  const nodeCount =
+    document.getElementById("nodeCount");
+
+  const proxyState =
+    document.getElementById("proxyState");
+
+async function updateStats(){
+
+  const start = performance.now();
+
+  try{
+
+    await fetch("/", {
+      cache: "no-store"
+    });
+
+    const ping =
+      Math.round(
+        performance.now() - start
+      );
+
+    latency.textContent =
+      ping + "ms";
+
+    proxyState.textContent =
+      "ONLINE";
+
+  }catch{
+
+    proxyState.textContent =
+      "OFFLINE";
+  }
+
+}
+
+updateStats();
+
+setInterval(updateStats,5000);
+  console.log("[snipershot] boot ok");
+  console.log("[proxy] connected");
+  console.log("[games] loaded");
+
+});
+
+const sniper =
+  document.getElementById("sniper");
+
+const canvas =
+  document.getElementById("fx");
+
+const ctx =
+  canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+addEventListener("resize", () => {
+
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+
+});
+
+let x = 120;
+let y = 120;
+
+let vx = 0;
+let vy = 0;
+
+let dragging = false;
+
+let facing = 1;
+let targetFacing = 1;
+
+let currentFlip = 1;
+
+let currentAngle = 0;
+let targetAngle = 0;
+
+let bullets = [];
+
+let ammo = 100;
+
+let reloading = false;
+let reloadVisual = 0;
+
+let grabOffsetX = 0;
+let grabOffsetY = 0;
+
+sniper.onmousedown = e => {
+
+  dragging = true;
+
+  const rect =
+    sniper.getBoundingClientRect();
+
+  grabOffsetX =
+    e.clientX - rect.left;
+
+  grabOffsetY =
+    e.clientY - rect.top;
+
+  vx = 0;
+  vy = 0;
+
+  sniper.style.cursor =
+    "grabbing";
+};
+
+addEventListener("mouseup", () => {
+
+  dragging = false;
+
+  sniper.style.cursor =
+    "grab";
+
+});
+
+let targetX = x;
+let targetY = y;
+
+let mouseVX = 0;
+let mouseVY = 0;
+
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+addEventListener("mousemove", e => {
+
+  mouseVX =
+    e.clientX - lastMouseX;
+
+  mouseVY =
+    e.clientY - lastMouseY;
+
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+
+  if(!dragging){
+    return;
+  }
+
+  targetX =
+    e.clientX - grabOffsetX;
+
+  targetY =
+    e.clientY - grabOffsetY;
+
+  const grabPercent =
+    grabOffsetX /
+    sniper.offsetWidth;
+
+  const leverage =
+    grabPercent - 0.5;
+
+  targetAngle =
+    -(leverage * 85);
+
+  vx += mouseVX * 0.08;
+  vy += mouseVY * 0.08;
+
+});
+
+const keys = {};
+
+addEventListener("keydown", e => {
+
+  keys[e.key.toLowerCase()] = true;
+
+  if(
+    e.key.toLowerCase() === "r"
+  ){
+    reload();
+  }
+
+  if(
+    e.key.toLowerCase() === "e"
+  ){
+    shoot();
+  }
+
+});
+
+addEventListener("keyup", e => {
+
+  keys[e.key.toLowerCase()] = false;
+
+});
+
+function keyboardLoop(){
+
+  if(keys.a){
+
+    targetFacing = -1;
+
+    vx -= 0.22;
+  }
+
+  if(keys.d){
+
+    targetFacing = 1;
+
+    vx += 0.22;
+  }
+
+  if(keys.w){
+
+    targetAngle -= 1.4;
+  }
+
+  if(keys.s){
+
+    targetAngle += 1.4;
+  }
+
+  requestAnimationFrame(
+    keyboardLoop
+  );
+}
+
+keyboardLoop();
+
+function reload(){
+
+  if(reloading){
+    return;
+  }
+
+  reloading = true;
+
+  let spin = 0;
+
+  const reloadAnim = setInterval(() => {
+
+    spin += 10;
+
+    reloadVisual = spin;
+
+  },16);
+
+  setTimeout(() => {
+
+    clearInterval(reloadAnim);
+
+    reloadVisual = 0;
+    ammo = 10;
+
+    reloading = false;
+
+  },900);
+}
+
+function shoot(){
+
+  if(reloading){
+    return;
+  }
+
+  if(ammo <= 0){
+    reload();
+    return;
+  }
+
+  ammo--;
+
+  const radians =
+    currentAngle *
+    Math.PI / 180;
+
+  const speed = 12;
+
+  const muzzleX =
+    x +
+    (facing === 1 ? 315 : 95) +
+    Math.cos(radians) *
+    120 *
+    facing;
+
+  const muzzleY =
+    y +
+    90 +
+    Math.sin(radians) * 120;
+
+  bullets.push({
+
+    x:muzzleX,
+    y:muzzleY,
+
+    vx:
+      Math.cos(radians) *
+      speed *
+      facing,
+
+    vy:
+      Math.sin(radians) *
+      speed,
+
+    life:0
+
+  });
+}
+
+function update(){
+
+  if(dragging){
+
+    x +=
+      (targetX - x) * 0.22;
+
+    y +=
+      (targetY - y) * 0.22;
+
+  }else{
+
+    vy += 0.42;
+
+    x += vx;
+    y += vy;
+
+    vx *= 0.985;
+    vy *= 0.985;
+  }
+
+  const leverage =
+    (grabOffsetX /
+    sniper.offsetWidth) - 0.5;
+
+  if(dragging){
+    targetAngle -=
+      leverage * 1.4;
+  }
+
+ const floor =
+  innerHeight - sniper.offsetHeight;
+
+  if(y > floor){
+
+    y = floor;
+
+    vy *= -0.22;
+
+    vx *= 0.96;
+
+    if(Math.abs(vy) < 0.25){
+      vy = 0;
+    }
+  }
+
+if(x < 0){
+
+  x = 0;
+  vx *= -0.35;
+
+}
+
+if(
+  x >
+  innerWidth - sniper.offsetWidth
+){
+
+  x =
+    innerWidth - sniper.offsetWidth;
+
+  vx *= -0.35;
+
+}
+
+  currentFlip +=
+    (targetFacing - currentFlip) *
+    0.12;
+
+  currentAngle +=
+    (targetAngle - currentAngle) *
+    0.12;
+
+  sniper.style.left =
+    x + "px";
+
+  sniper.style.top =
+    y + "px";
+
+sniper.style.transform =
+  "scaleX(" + currentFlip + ") rotate(" + (currentAngle + reloadVisual) + "deg)";
+
+  requestAnimationFrame(update);
+}
+
+update();
+
+function bulletDraw(x, y, angle){
+
+  ctx.save();
+
+  ctx.translate(x, y);
+
+  ctx.rotate(angle);
+
+  ctx.fillStyle = "#d4b06a";
+
+  ctx.fillRect(-6, -1, 12, 3);
+
+  ctx.fillStyle = "#f7e4a8";
+
+  ctx.fillRect(4, -1, 4, 3);
+
+  ctx.restore();
+}
+
+function render(){
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  for(
+    let i = bullets.length - 1;
+    i >= 0;
+    i--
+  ){
+
+    const bullet =
+      bullets[i];
+
+    bullet.life++;
+
+    bullet.x += bullet.vx;
+    bullet.y += bullet.vy;
+
+    bulletDraw(
+      bullet.x,
+      bullet.y,
+      Math.atan2(
+        bullet.vy,
+        bullet.vx
+      )
+    );
+
+    if(
+      bullet.life > 220 ||
+      bullet.x < -200 ||
+      bullet.x > innerWidth + 200 ||
+      bullet.y < -200 ||
+      bullet.y > innerHeight + 200
+    ){
+      bullets.splice(i,1);
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+
+render();
+
+</script>
+
+</body>
+</html>
+`;
+
+function gamesPage() {
+return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>THE PEAK GAMES</title>
+
+<script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js"></script>
+
+<style>
+body{
+  margin:0;
+  padding:20px;
+  color:white;
+  font-family:Inter,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  background:#060608;
+}
+
+.bg{
+  position:fixed;
+  inset:0;
+  z-index:-2;
+
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,0,0,.14), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255,0,0,.10), transparent 45%),
+    url("${bg}") center/cover no-repeat;
+
+  filter:brightness(.3);
+}
+
+#particles{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+  z-index:-1;
+}
+
+.particle{
+  position:absolute;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:rgba(255,255,255,.35);
+  animation:float linear infinite;
+}
+
+@keyframes float{
+  from{
+    transform:translateY(100vh);
+    opacity:0;
+  }
+
+  20%{
+    opacity:1;
+  }
+
+  to{
+    transform:translateY(-120vh);
+    opacity:0;
+  }
+}
+
+.search{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  margin-bottom:20px;
+  background:#1a1a22;
+  color:white;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:16px;
+}
+
+.card{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.thumbWrap{
+  position:relative;
+  width:100%;
+  height:140px;
+  overflow:hidden;
+  border-radius:14px;
+  margin-bottom:14px;
+}
+
+.thumb{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.gameTitle{
+  margin-top:8px;
+  text-align:center;
+  font-size:16px;
+}
+
+.gamePreview{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.55);
+  opacity:0;
+  transform:translateY(10px);
+  transition:.25s ease;
+  font-weight:800;
+}
+
+.card:hover .gamePreview{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.pageControls{
+  display:flex;
+  justify-content:center;
+  gap:16px;
+  margin-bottom:24px;
+}
+
+.pageBtn{
+  padding:12px 22px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg, rgba(255,40,40,.9), rgba(180,0,0,.9));
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.pageIndicator{
+  padding:12px 18px;
+  border-radius:14px;
+  background:rgba(255,255,255,.05);
+}
+  h1,
+.search,
+.pageControls,
+.grid{
+  position:relative;
+  z-index:2;
+}
+</style>
+</head>
+
+<body>
+
+<div class="bg"></div>
+<div id="particles"></div>
+
+<h1>🎮 GAMESSSSS</h1>
+
+<input id="search" class="search" placeholder="Search games...">
+
+<div class="pageControls">
+  <button id="prevPage" class="pageBtn">⬅ Previous</button>
+  <div id="pageNum" class="pageIndicator">Page 1</div>
+  <button id="nextPage" class="pageBtn">Next ➡</button>
+</div>
+
+<div id="grid" class="grid"></div>
+
+<script>
+let allGames = [];
+let gnMathGames = [];
+let currentPage = 1;
+let totalPages = 1;
+let currentPageGames = [];
+const gnMathZonesUrls = [
+  "https://raw.githubusercontent.com/gn-math/assets/main/zones.json"
+];
+const gnMathCoverUrl = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
+const gnMathHtmlUrl = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
+
+function fallbackThumb(game){
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">' +
+      '<rect width="320" height="180" fill="#111"/>' +
+      '<text x="160" y="96" fill="white" font-family="Arial" font-size="24" text-anchor="middle">' +
+        (game.name || "Game").replace(/[&<>]/g, "") +
+      '</text>' +
+    '</svg>'
+  );
+}
+
+function normalizeGnMathZone(zone){
+  const url = String(zone.url || "")
+    .replaceAll("{COVER_URL}", gnMathCoverUrl)
+    .replaceAll("{HTML_URL}", gnMathHtmlUrl);
+  const cover = String(zone.cover || "")
+    .replaceAll("{COVER_URL}", gnMathCoverUrl)
+    .replaceAll("{HTML_URL}", gnMathHtmlUrl);
+
+  return {
+    id: "gn-" + zone.id,
+    name: zone.name || ("GN Math " + zone.id),
+    cover_url: cover,
+    html_url: url,
+    source: "gn-math"
+  };
+}
+
+async function fetchJsonFromAny(urls){
+  let lastError;
+  for(const url of urls){
+    try{
+      const response = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now());
+      if(!response.ok) throw new Error(response.status + " " + response.statusText);
+      return await response.json();
+    }catch(err){
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("GN Math catalog failed.");
+}
+
+async function loadGnMathGames(){
+  const zones = await fetchJsonFromAny(gnMathZonesUrls);
+  return zones
+    .filter(zone => zone && zone.id !== undefined && zone.name && zone.url)
+    .map(normalizeGnMathZone);
+}
+
+async function getThumb(game){
+  if(game.cover_url) return game.cover_url;
+  if(game.image_token) return await Lumin.getImageUrl(game.image_token);
+  return fallbackThumb(game);
+}
+
+async function openGnMathGame(game){
+  try{
+    const response = await fetch(game.html_url);
+    if(!response.ok) throw new Error(response.status + " " + response.statusText);
+    let html = await response.text();
+    const baseTag = '<base href="' + gnMathHtmlUrl + '/">';
+
+    if(/<head[^>]*>/i.test(html)){
+      html = html.replace(/<head([^>]*)>/i, '<head$1>' + baseTag);
+    }else{
+      html = baseTag + html;
+    }
+
+    const blob = new Blob([html], { type:"text/html" });
+    window.location.href = URL.createObjectURL(blob);
+  }catch(err){
+    console.error("GN Math game launch failed:", err);
+  }
+}
+
+async function loadGames(list){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+console.log("Rendering", list.length, "games");
+
+  const images = await Promise.all(
+    list.map(g => getThumb(g).catch(() => fallbackThumb(g)))
+  );
+
+  list.forEach((game,index)=>{
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML =
+      '<div class="thumbWrap">' +
+        '<img class="thumb" src="' + images[index] + '">' +
+        '<div class="gamePreview">▶ PLAY NOW</div>' +
+      '</div>' +
+      '<div class="gameTitle">🎮 ' + game.name + '</div>';
+
+    card.onclick = () => {
+      if(game.html_url){
+        openGnMathGame(game);
+      }else{
+        Lumin.loadGame(game.id);
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+(async ()=>{
+  await Lumin.init({ headless:true });
+  gnMathGames = await loadGnMathGames().catch(err => {
+    console.error("GN Math catalog failed:", err);
+    return [];
+  });
+
+async function fetchPage(page){
+
+  const result = await Lumin.getGames({
+    page,
+    limit:24
+  });
+
+  console.log(result);
+
+  currentPage = page;
+  totalPages = result.pages || 1;
+
+  let pageGames = result.games;
+
+  if(page === 1){
+    pageGames = pageGames.concat(gnMathGames);
+  }
+
+  document.getElementById("pageNum").textContent =
+    "Page " + currentPage + " / " + totalPages;
+
+  currentPageGames = pageGames;
+  
+loadGames(pageGames);
+}
+  await fetchPage(1);
+
+  document.getElementById("nextPage").onclick = () => {
+    if(currentPage < totalPages){
+      fetchPage(currentPage + 1);
+    }
+  };
+
+  document.getElementById("prevPage").onclick = () => {
+    if(currentPage > 1){
+      fetchPage(currentPage - 1);
+    }
+  };
+})();
+
+document.getElementById("search").addEventListener("input", e => {
+  const query = e.target.value.trim().toLowerCase();
+
+  if(!query){
+    loadGames(allGames);
+    return;
+  }
+
+  const filtered = allGames.filter(game => {
+    return (
+      game.name &&
+      game.name.toLowerCase().includes(query)
+    );
+  });
+
+  loadGames(filtered);
+});
+const particleWrap =
+  document.getElementById("particles");
+
+for(let i = 0; i < 80; i++){
+
+  const particle =
+    document.createElement("div");
+
+  particle.className = "particle";
+
+  particle.style.left =
+    Math.random() * 100 + "%";
+
+  particle.style.top =
+    Math.random() * 100 + "%";
+
+  particle.style.animationDuration =
+    4 + Math.random() * 12 + "s";
+
+  particle.style.animationDelay =
+    Math.random() * 5 + "s";
+
+  particle.style.opacity =
+    Math.random();
+
+  particleWrap.appendChild(particle);
+}
+</script>
+
+</body>
+</html>
+`;
+}
+
+export default {
+
+async fetch(req){
+
+  const url = new URL(req.url);
+
+  if(url.pathname === "/"){
+
+ const colo =
+  req.cf?.colo || "Unknown";
+
+return new Response(
+  home.replace(
+    "__NODE__",
+    colo
+  ),
+{
+      headers:{
+        "content-type":"text/html"
+      }
+    });
+  }
+
+  if(url.pathname === "/games"){
+
+    return new Response(gamesPage(),{
+      headers:{
+        "content-type":"text/html"
+      }
+    });
+  }
+if(false && url.pathname === "/people-playground"){
+
+  const html = `<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+<base href="https://cdn.jsdelivr.net/gh/genizy/web-port@main/people-playground/">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>People Playground</title>
+
+<link rel="shortcut icon" href="TemplateData/favicon.ico">
+<link rel="stylesheet" href="TemplateData/style.css">
+
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  width:100%;
+  height:100%;
+  background:#000;
+  font-family:Arial,sans-serif;
+}
+
+#unity-container{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+#unity-canvas{
+  width:100%;
+  height:100%;
+  background:#000;
+}
+
+#loading-text{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  color:white;
+  font-size:40px;
+  z-index:10;
+}
+
+#unity-loading-bar{
+  position:fixed;
+  bottom:40px;
+  left:50%;
+  transform:translateX(-50%);
+  width:320px;
+}
+
+#unity-progress-bar-empty{
+  width:100%;
+  height:18px;
+  background:#222;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+#unity-progress-bar-full{
+  width:0%;
+  height:100%;
+  background:white;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading-text">LOADING...</div>
+
+<div id="unity-container" hidden>
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+  <div id="unity-loading-bar">
+    <div id="unity-progress-bar-empty">
+      <div id="unity-progress-bar-full"></div>
+    </div>
+  </div>
+
+  <div id="unity-warning"></div>
+</div>
+
+<script>
+const container=document.querySelector("#unity-container");
+const canvas=document.querySelector("#unity-canvas");
+const loadingBar=document.querySelector("#unity-loading-bar");
+const progressBarFull=document.querySelector("#unity-progress-bar-full");
+const warningBanner=document.querySelector("#unity-warning");
+
+function unityShowBanner(msg,type){
+
+  const div=document.createElement("div");
+  div.innerHTML=msg;
+
+  if(type==="error"){
+    div.style="background:red;padding:10px;";
+  }else{
+    div.style="background:yellow;padding:10px;";
+    setTimeout(()=>{
+      div.remove();
+    },5000);
+  }
+
+  warningBanner.appendChild(div);
+}
+
+function mergeFiles(parts){
+
+  return new Promise((resolve,reject)=>{
+
+    const buffers=[];
+
+    async function load(index){
+
+      if(index>=parts.length){
+
+        const blob=new Blob(buffers);
+        const url=URL.createObjectURL(blob);
+
+        resolve(url);
+        return;
+      }
+
+      try{
+
+        const response=await fetch(parts[index]);
+
+        if(!response.ok){
+          throw new Error("Failed: "+parts[index]);
+        }
+
+        const data=await response.arrayBuffer();
+
+        buffers.push(data);
+
+        load(index+1);
+
+      }catch(err){
+        reject(err);
+      }
+    }
+
+    load(0);
+  });
+}
+
+function getParts(file,start,end){
+
+  const parts=[];
+
+  for(let i=start;i<=end;i++){
+    parts.push(file+".part"+i);
+  }
+
+  return parts;
+}
+
+Promise.all([
+  mergeFiles(getParts("Build/PPG.wasm",1,3)),
+  mergeFiles(getParts("Build/PPG.data",1,6))
+])
+
+.then(([wasmUrl,dataUrl])=>{
+
+  container.hidden=false;
+
+  const buildUrl="Build";
+
+  const config={
+    dataUrl:dataUrl,
+    frameworkUrl:buildUrl+"/PPG.framework.js",
+    codeUrl:wasmUrl,
+    streamingAssetsUrl:"StreamingAssets",
+    companyName:"Studio Minus",
+    productName:"People Playground",
+    productVersion:"0",
+    showBanner:unityShowBanner
+  };
+
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+
+    const meta=document.createElement("meta");
+
+    meta.name="viewport";
+
+    meta.content="width=device-width,height=device-height,initial-scale=1,user-scalable=no";
+
+    document.head.appendChild(meta);
+
+  }
+
+  function resize(){
+
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+
+    canvas.style.width=window.innerWidth+"px";
+    canvas.style.height=window.innerHeight+"px";
+  }
+
+  resize();
+
+  window.addEventListener("resize",resize);
+
+  loadingBar.style.display="block";
+
+  const script=document.createElement("script");
+
+  script.src=buildUrl+"/PPG.loader.js";
+
+  script.onload=()=>{
+
+    createUnityInstance(canvas,config,(progress)=>{
+
+      progressBarFull.style.width=(progress*100)+"%";
+
+    })
+
+    .then(()=>{
+
+      loadingBar.style.display="none";
+
+      document.querySelector("#loading-text").remove();
+
+    })
+
+    .catch((err)=>{
+
+      console.error(err);
+
+      alert(err);
+    });
+  };
+
+  document.body.appendChild(script);
+
+})
+
+.catch((err)=>{
+
+  console.error(err);
+
+  alert("Failed to load game files");
+});
+</script>
+
+</body>
+</html>`;
+
+  return new Response(html,{
+    headers:{
+      "content-type":"text/html;charset=UTF-8"
+    }
+  });
+}
+if(false && url.pathname === "/retro-bowl"){
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Retro Bowl</title>
+
+<style>
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
+
+iframe{
+  width:100vw;
+  height:100vh;
+  border:none;
+}
+
+.fullscreen{
+  position:fixed;
+  top:10px;
+  right:10px;
+  z-index:9999;
+  padding:10px 16px;
+  cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<iframe
+  id="game"
+  src="https://retrobowlofficial.com/"
+  allowfullscreen
+></iframe>
+
+<button
+  class="fullscreen"
+  onclick="fullscreenGame()"
+>
+⛶
+</button>
+
+<script>
+
+function fullscreenGame(){
+
+  const iframe =
+    document.getElementById("game");
+
+  if(iframe.requestFullscreen){
+    iframe.requestFullscreen();
+  }
+
+}
+
+</script>
+
+</body>
+</html>
+`;
+
+  return new Response(html,{
+    headers:{
+      "content-type":"text/html;charset=UTF-8"
+    }
+  });
+}
+if(url.pathname === "/slope"){
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Slope</title>
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/renagamer101/lunar@1933964863114239e554837ae61083412faaa3d5/gfiles/slope/TemplateData/style.css"
+>
+
+<style>
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
+
+#gameContainer{
+  width:100vw;
+  height:100vh;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="gameContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/gh/renagamer101/lunar@1933964863114239e554837ae61083412faaa3d5/gfiles/slope/TemplateData/UnityProgress.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/renagamer101/lunar@1933964863114239e554837ae61083412faaa3d5/gfiles/slope/TemplateData/unityloader41.js"></script>
+
+<script>
+
+UnityLoader.instantiate(
+  "gameContainer",
+  "https://cdn.jsdelivr.net/gh/renagamer101/lunar@1933964863114239e554837ae61083412faaa3d5/gfiles/slope/Build/slope.json",
+  {
+    onProgress: UnityProgress
+  }
+);
+
+</script>
+
+</body>
+</html>
+`;
+
+  return new Response(html,{
+    headers:{
+      "content-type":"text/html;charset=UTF-8"
+    }
+  });
+}
+if(false && url.pathname === "/drift-hunters"){
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Drift Hunters</title>
+
+<style>
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
+
+#gameContainer{
+  width:100vw;
+  height:100vh;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="gameContainer"></div>
+<script>
+const originalWarn = console.warn;
+
+console.warn = (...args) => {
+  const text = args.join(" ");
+
+  if (text.includes("gzip compression")) {
+    return;
+  }
+
+  originalWarn(...args);
+};
+</script>
+<script src="https://rawcdn.githack.com/unxa/unxa.github.io/976db99398423b4e5a8b327892c2b57b6a5b766f/g/drift-hunters/UnityLoader2019.js"></script>
+
+<script>
+
+UnityLoader.instantiate(
+  "gameContainer",
+  "https://rawcdn.githack.com/unxa/unxa.github.io/976db99398423b4e5a8b327892c2b57b6a5b766f/g/drift-hunters/dh.json"
+);
+
+</script>
+
+</body>
+</html>
+`;
+
+  return new Response(html,{
+    headers:{
+      "content-type":"text/html;charset=UTF-8"
+    }
+  });
+}
+if(false && url.pathname === "/run3"){
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Run 3</title>
+
+<style>
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
+
+iframe{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:none;
+}
+
+.fullscreen{
+  position:fixed;
+  top:10px;
+  right:10px;
+  z-index:9999;
+  padding:10px 16px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:18px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<iframe
+  src="https://lekug.github.io/tn6pS9dCf37xAhkJv/"
+  allow="fullscreen"
+  allowfullscreen
+  referrerpolicy="no-referrer"
+  style="
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:none;
+  ">
+</iframe>
+
+<button
+  class="fullscreen"
+  onclick="fullscreenGame()"
+>
+⛶
+</button>
+
+<script>
+
+async function fullscreenGame(){
+
+  const iframe =
+    document.getElementById("game");
+
+  try{
+
+    if(iframe.requestFullscreen){
+      await iframe.requestFullscreen();
+    }
+
+  }catch(err){
+    console.error(err);
+  }
+
+}
+
+document.addEventListener("keydown",(e)=>{
+
+  if(e.code==="Backquote"){
+    location.href="https://google.com";
+  }
+
+});
+
+</script>
+
+</body>
+</html>
+`;
+
+  return new Response(html,{
+    headers:{
+      "content-type":"text/html;charset=UTF-8"
+    }
+  });
+}
+  if(url.pathname === "/search"){
+
+    const q =
+      url.searchParams.get("q") || "";
+
+    return Response.redirect(
+
+      new URL(
+
+        "/https/https://search.brave.com/search%3Fq%3D" +
+        encodeURIComponent(q),
+
+        req.url
+
+      ),
+
+      302
+    );
+  }
+
+  if(url.pathname.startsWith("/https/")){
+
+    try{
+
+      let raw = decodeURIComponent(
+        url.pathname.replace("/https/","")
+      );
+
+      if(
+        !raw.startsWith("http://") &&
+        !raw.startsWith("https://")
+      ){
+        raw = "https://" + raw;
+      }
+
+      const target =
+        new URL(raw).toString();
+
+      const res = await fetch(target,{
+
+        headers:{
+
+          "User-Agent":"Mozilla/5.0",
+
+          "Accept":
+            "text/html,application/xhtml+xml",
+
+          "Accept-Language":
+            "en-US,en;q=0.9",
+
+          "Cache-Control":
+            "no-cache"
+        },
+
+        redirect:"follow"
+      });
+
+      const headers =
+        new Headers(res.headers);
+
+      headers.delete("content-security-policy");
+      headers.delete("x-frame-options");
+
+      headers.delete("cross-origin-embedder-policy");
+      headers.delete("cross-origin-opener-policy");
+      headers.delete("cross-origin-resource-policy");
+
+      headers.delete(
+        "content-security-policy-report-only"
+      );
+
+      headers.set(
+        "access-control-allow-origin",
+        "*"
+      );
+
+      headers.set(
+        "access-control-allow-headers",
+        "*"
+      );
+
+      headers.set(
+        "access-control-expose-headers",
+        "*"
+      );
+
+      const type =
+        headers.get("content-type") || "";
+
+      if(type.includes("text/html")){
+
+        let html =
+          await res.text();
+
+        html =
+          rewriteHtml(html, target);
+
+        return new Response(html,{
+          status:res.status,
+          headers
+        });
+      }
+
+      return new Response(res.body,{
+        status:res.status,
+        headers
+      });
+
+    }catch(err){
+
+      return new Response(
+
+        "Proxy error: " + err.stack,
+
+        {
+          status:500
+        }
+      );
+    }
+  }
+
+  return new Response("404",{
+    status:404
+  });
+
+}
+
+};
